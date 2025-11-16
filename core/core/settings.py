@@ -57,6 +57,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Для статических файлов на Railway
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'core.middleware.DisableCSRFForAPI',  # Отключаем CSRF для API endpoints
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -163,8 +164,8 @@ AUTH_USER_MODEL = 'accounts.User'
 # Django REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',  # Для browsable API
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -172,3 +173,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 }
+
+# CSRF settings для API
+# Исключаем API endpoints из CSRF проверки (используем Token auth)
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if os.environ.get('CSRF_TRUSTED_ORIGINS') else []
+CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False') == 'True'  # True для HTTPS
+CSRF_COOKIE_HTTPONLY = True
