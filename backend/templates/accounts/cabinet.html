@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Личный кабинет врача - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="cabinet-header">
+        <h1>Личный кабинет врача</h1>
+        <p class="user-info">Добро пожаловать, {{ user.email }}</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+                <h3>{{ total_patients }}</h3>
+                <p>Пациентов</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <div class="stat-content">
+                <h3>{{ total_records }}</h3>
+                <p>Медицинских карточек</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🏥</div>
+            <div class="stat-content">
+                <h3>{{ user.hospital.name|default:"Не указана" }}</h3>
+                <p>Больница</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">👨‍⚕️</div>
+            <div class="stat-content">
+                <h3>{{ user.get_role_display }}</h3>
+                <p>Роль</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-grid">
+        <div class="content-section">
+            <h2>Последние пациенты</h2>
+            {% if recent_patients %}
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ФИО</th>
+                                <th>Дата рождения</th>
+                                <th>Телефон</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for patient in recent_patients %}
+                            <tr>
+                                <td>{{ patient.full_name }}</td>
+                                <td>{{ patient.date_of_birth|date:"d.m.Y" }}</td>
+                                <td>{{ patient.phone|default:"—" }}</td>
+                                <td>
+                                    <a href="{% url 'admin:patients_patient_change' patient.id %}" class="btn btn-sm">Подробнее</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="empty-state">Нет пациентов</p>
+            {% endif %}
+            <a href="{% url 'admin:patients_patient_changelist' %}" class="btn btn-primary">Все пациенты</a>
+        </div>
+
+        <div class="content-section">
+            <h2>Последние медицинские карточки</h2>
+            {% if recent_records %}
+                <div class="records-list">
+                    {% for record in recent_records %}
+                    <div class="record-card">
+                        <div class="record-header">
+                            <h4>{{ record.patient.full_name }}</h4>
+                            <span class="record-date">{{ record.visit_date|date:"d.m.Y" }}</span>
+                        </div>
+                        <div class="record-content">
+                            <p><strong>Жалобы:</strong> {{ record.chief_complaint|truncatewords:20 }}</p>
+                            {% if record.diagnosis %}
+                                <p><strong>Диагноз:</strong> {{ record.diagnosis }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="record-actions">
+                            <a href="{% url 'admin:patients_medicalrecord_change' record.id %}" class="btn btn-sm">Подробнее</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-state">Нет медицинских карточек</p>
+            {% endif %}
+            <a href="{% url 'admin:patients_medicalrecord_changelist' %}" class="btn btn-primary">Все карточки</a>
+        </div>
+    </div>
+
+    <div class="quick-actions">
+        <h2>Быстрые действия</h2>
+        <div class="actions-grid">
+            <a href="{% url 'admin:patients_patient_add' %}" class="action-card">
+                <div class="action-icon">➕</div>
+                <h3>Добавить пациента</h3>
+                <p>Создать новую запись о пациенте</p>
+            </a>
+            <a href="{% url 'admin:patients_medicalrecord_add' %}" class="action-card">
+                <div class="action-icon">📝</div>
+                <h3>Создать карточку</h3>
+                <p>Добавить новую медицинскую карточку</p>
+            </a>
+            <a href="{% url 'admin:index' %}" class="action-card">
+                <div class="action-icon">⚙️</div>
+                <h3>Админ-панель</h3>
+                <p>Управление данными</p>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
