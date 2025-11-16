@@ -3,7 +3,7 @@ from .models import Hospital
 
 
 class HospitalSerializer(serializers.ModelSerializer):
-    """Serializer for Hospital model."""
+    """Сериализатор для больницы."""
     
     class Meta:
         model = Hospital

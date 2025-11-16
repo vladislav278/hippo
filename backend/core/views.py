@@ -4,31 +4,28 @@ from django.views.decorators.http import require_http_methods
 
 @require_http_methods(["GET"])
 def home_view(request):
-    """Главная страница API с информацией о доступных endpoints."""
-    
+    """Главная страница с информацией об API."""
     api_info = {
         "project": "Третье мнение - Платформа для консилиумов врачей",
         "version": "1.0.0",
-        "description": "REST API для управления пациентами, медицинскими карточками и консилиумами",
         "endpoints": {
-            "authentication": {
+            "accounts": {
                 "register": {
                     "url": "/api/accounts/register/",
                     "method": "POST",
                     "description": "Регистрация нового пользователя",
-                    "required_fields": ["email", "username", "password", "password_confirm"],
-                    "optional_fields": ["role", "hospital"]
+                    "authentication": "not required"
                 },
                 "login": {
                     "url": "/api/accounts/login/",
                     "method": "POST",
                     "description": "Вход в систему",
-                    "required_fields": ["email", "password"]
+                    "authentication": "not required"
                 },
-                "current_user": {
+                "me": {
                     "url": "/api/accounts/me/",
                     "method": "GET",
-                    "description": "Получить информацию о текущем пользователе",
+                    "description": "Информация о текущем пользователе",
                     "authentication": "required"
                 }
             },
@@ -36,12 +33,13 @@ def home_view(request):
                 "list": {
                     "url": "/api/hospitals/",
                     "method": "GET",
-                    "description": "Список всех больниц (публичный)"
+                    "description": "Список больниц",
+                    "authentication": "not required"
                 },
                 "create": {
                     "url": "/api/hospitals/",
                     "method": "POST",
-                    "description": "Создать новую больницу",
+                    "description": "Создать больницу",
                     "authentication": "required"
                 }
             },
@@ -49,16 +47,20 @@ def home_view(request):
                 "cabinet": {
                     "url": "/api/patients/cabinet/",
                     "method": "GET",
-                    "description": "Кабинет врача - статистика и краткая информация",
+                    "description": "Кабинет врача со статистикой",
                     "authentication": "required"
                 },
                 "patient_list": {
                     "url": "/api/patients/patients/",
-                    "method": "GET, POST",
-                    "description": "Список пациентов врача / Создать пациента",
-                    "authentication": "required",
-                    "search": "?search=query",
-                    "ordering": "?ordering=last_name"
+                    "method": "GET",
+                    "description": "Список пациентов",
+                    "authentication": "required"
+                },
+                "patient_create": {
+                    "url": "/api/patients/patients/",
+                    "method": "POST",
+                    "description": "Создать пациента",
+                    "authentication": "required"
                 },
                 "patient_detail": {
                     "url": "/api/patients/patients/<id>/",
@@ -66,12 +68,17 @@ def home_view(request):
                     "description": "Детальная информация о пациенте",
                     "authentication": "required"
                 },
-                "records_list": {
+                "record_list": {
                     "url": "/api/patients/records/",
-                    "method": "GET, POST",
-                    "description": "Список медицинских карточек / Создать карточку",
-                    "authentication": "required",
-                    "filter": "?patient=<id>"
+                    "method": "GET",
+                    "description": "Список медицинских карточек",
+                    "authentication": "required"
+                },
+                "record_create": {
+                    "url": "/api/patients/records/",
+                    "method": "POST",
+                    "description": "Создать медицинскую карточку",
+                    "authentication": "required"
                 },
                 "record_detail": {
                     "url": "/api/patients/records/<id>/",

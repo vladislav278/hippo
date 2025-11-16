@@ -42,9 +42,6 @@ def login_view(request):
     # Create or get token
     token, created = Token.objects.get_or_create(user=user)
     
-    # Note: We don't use login() here because API uses Token authentication, not Session
-    # Session login would require CSRF token which is not needed for API
-    
     user_data = UserSerializer(user).data
     return Response({
         'user': user_data,
@@ -59,4 +56,3 @@ def current_user_view(request):
     """API endpoint to get current authenticated user."""
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
-
