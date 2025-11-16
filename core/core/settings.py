@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
-from urllib.parse import urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,7 +43,6 @@ INSTALLED_APPS = [
     # внешние
     "rest_framework",
     "rest_framework.authtoken",
-    "whitenoise.runserver_nostatic",  # Для статических файлов на Railway
 
     # наши
     "accounts",
@@ -54,10 +52,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Для статических файлов на Railway
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'core.middleware.DisableCSRFForAPI',  # Отключаем CSRF для API endpoints
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -87,30 +83,12 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Используем PostgreSQL на Railway, SQLite для локальной разработки
-DATABASE_URL = os.environ.get('DATABASE_URL')
-
-if DATABASE_URL:
-    # Парсим DATABASE_URL от Railway
-    parsed = urlparse(DATABASE_URL)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': parsed.path[1:],  # Убираем первый слэш
-            'USER': parsed.username,
-            'PASSWORD': parsed.password,
-            'HOST': parsed.hostname,
-            'PORT': parsed.port or '5432',
-        }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
-    # Локальная разработка с SQLite
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 
 # Password validation
@@ -150,9 +128,6 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# WhiteNoise для статических файлов на Railway
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -173,37 +148,3 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 }
-
-# CSRF settings для API и Admin
-# Исключаем API endpoints из CSRF проверки (используем Token auth)
-# Но для Admin нужны trusted origins
-
-# Получаем trusted origins из переменной окружения
-csrf_trusted_origins_env = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
-CSRF_TRUSTED_ORIGINS = []
-
-if csrf_trusted_origins_env:
-    # Если указана переменная окружения, используем её
-    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_trusted_origins_env.split(',') if origin.strip()]
-else:
-    # Автоматически определяем Railway домен из ALLOWED_HOSTS
-    allowed_hosts = os.environ.get('ALLOWED_HOSTS', '')
-    if allowed_hosts:
-        for host in allowed_hosts.split(','):
-            host = host.strip()
-            if host and host != '*' and 'railway.app' in host:
-                # Добавляем конкретный домен (Django не поддерживает wildcard)
-                CSRF_TRUSTED_ORIGINS.append(f'https://{host}')
-    
-    # Если ничего не найдено и мы на Railway (есть DATABASE_URL), добавляем общий домен
-    # Но лучше указать CSRF_TRUSTED_ORIGINS в переменных окружения на Railway
-    if not CSRF_TRUSTED_ORIGINS and DATABASE_URL:
-        # Пытаемся определить домен из Railway переменных
-        railway_public_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '')
-        if railway_public_domain:
-            CSRF_TRUSTED_ORIGINS.append(f'https://{railway_public_domain}')
-
-# Для production на Railway используем HTTPS
-CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'True') == 'True'  # True для HTTPS на Railway
-CSRF_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True') == 'True'  # True для HTTPS
