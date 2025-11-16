@@ -40,7 +40,11 @@ git push
 
 - `DEBUG` - установите `False` для production
 
-- `ALLOWED_HOSTS` - укажите домен Railway (например: `your-app.railway.app`) или `*` для начала
+- `ALLOWED_HOSTS` - укажите домен Railway (например: `web-production-5dc97.up.railway.app`) или `*` для начала
+
+- `CSRF_TRUSTED_ORIGINS` - укажите ваш Railway домен с https (например: `https://web-production-5dc97.up.railway.app`)
+  - Это нужно для работы Django Admin
+  - Если у вас несколько доменов, укажите их через запятую: `https://domain1.com,https://domain2.com`
 
 ### Автоматические переменные (Railway создаст их автоматически):
 

@@ -174,8 +174,36 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 
-# CSRF settings для API
+# CSRF settings для API и Admin
 # Исключаем API endpoints из CSRF проверки (используем Token auth)
-CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if os.environ.get('CSRF_TRUSTED_ORIGINS') else []
-CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False') == 'True'  # True для HTTPS
+# Но для Admin нужны trusted origins
+
+# Получаем trusted origins из переменной окружения
+csrf_trusted_origins_env = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = []
+
+if csrf_trusted_origins_env:
+    # Если указана переменная окружения, используем её
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_trusted_origins_env.split(',') if origin.strip()]
+else:
+    # Автоматически определяем Railway домен из ALLOWED_HOSTS
+    allowed_hosts = os.environ.get('ALLOWED_HOSTS', '')
+    if allowed_hosts:
+        for host in allowed_hosts.split(','):
+            host = host.strip()
+            if host and host != '*' and 'railway.app' in host:
+                # Добавляем конкретный домен (Django не поддерживает wildcard)
+                CSRF_TRUSTED_ORIGINS.append(f'https://{host}')
+    
+    # Если ничего не найдено и мы на Railway (есть DATABASE_URL), добавляем общий домен
+    # Но лучше указать CSRF_TRUSTED_ORIGINS в переменных окружения на Railway
+    if not CSRF_TRUSTED_ORIGINS and DATABASE_URL:
+        # Пытаемся определить домен из Railway переменных
+        railway_public_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '')
+        if railway_public_domain:
+            CSRF_TRUSTED_ORIGINS.append(f'https://{railway_public_domain}')
+
+# Для production на Railway используем HTTPS
+CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'True') == 'True'  # True для HTTPS на Railway
 CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True') == 'True'  # True для HTTPS
