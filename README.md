@@ -81,7 +81,7 @@
 
 ### Технические особенности
 
-- **Backend**: Django 5.2.8 + Django REST Framework
+- **Backend**: Django 4.2.18 + Django REST Framework
 - **Frontend**: Bootstrap 5.3.0, HTML/CSS/JavaScript
 - **База данных**: SQLite (локально), PostgreSQL (production)
 - **Аутентификация**: Session-based + Token-based (DRF)
