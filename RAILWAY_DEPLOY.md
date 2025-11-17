@@ -18,11 +18,14 @@
    SECRET_KEY=ваш-секретный-ключ-для-production
    DEBUG=False
    ALLOWED_HOSTS=ваш-домен.railway.app,*.railway.app
+   CSRF_TRUSTED_ORIGINS=https://ваш-домен.railway.app,https://*.railway.app
    ADMIN_EMAIL=ваш-email@example.com
    ADMIN_PASSWORD=ваш-пароль
    ADMIN_FIRST_NAME=Имя
    ADMIN_LAST_NAME=Фамилия
    ```
+   
+   **Важно:** Замените `ваш-домен.railway.app` на реальный домен вашего Railway приложения (например, `web-production-5dc97.up.railway.app`).
 
 4. **Сгенерируйте SECRET_KEY:**
    ```python

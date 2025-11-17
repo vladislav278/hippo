@@ -34,6 +34,34 @@ DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else ['*']
 
+# CSRF trusted origins для Railway и других доменов
+CSRF_TRUSTED_ORIGINS = []
+# Получаем из переменной окружения
+if os.environ.get('CSRF_TRUSTED_ORIGINS'):
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()]
+
+# Автоматически добавляем Railway домен, если он есть в переменных окружения
+if os.environ.get('RAILWAY_PUBLIC_DOMAIN'):
+    railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
+    railway_origin = f'https://{railway_domain}'
+    if railway_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(railway_origin)
+
+# Также добавляем все домены из ALLOWED_HOSTS
+for host in ALLOWED_HOSTS:
+    if not host or host == '*':
+        continue
+    host = host.strip()
+    # Если уже полный URL с https://
+    if host.startswith('https://'):
+        if host not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(host)
+    # Если домен без протокола, добавляем https://
+    elif not host.startswith('http'):
+        https_origin = f'https://{host}'
+        if https_origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(https_origin)
+
 
 # Application definition
 
