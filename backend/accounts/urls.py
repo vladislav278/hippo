@@ -23,6 +23,8 @@ from .views import (
     knowledge_base_view,
     generate_stable_cases_view,
     complete_case_view,
+    generate_registration_keys_view,
+    registration_keys_view,
 )
 
 app_name = 'accounts'
@@ -50,6 +52,8 @@ urlpatterns = [
     path('cases/<int:case_id>/patient/<int:patient_id>/', patient_detail_anonymous_view, name='patient_detail_anonymous'),
     path('knowledge/', knowledge_base_view, name='knowledge_base'),
     path('tools/generate_stable_cases/', generate_stable_cases_view, name='generate_stable_cases'),
+    path('registration-keys/', registration_keys_view, name='registration_keys'),
+    path('tools/generate_registration_keys/', generate_registration_keys_view, name='generate_registration_keys'),
     path('register/', register_view, name='register'),
     path('logout/', logout_view, name='logout'),
 ]

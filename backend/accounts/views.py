@@ -8,7 +8,7 @@ from django.contrib.auth import logout as auth_logout, login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
-from .models import User
+from .models import User, RegistrationKey
 from .serializers import UserSerializer, UserRegistrationSerializer, LoginSerializer
 from patients.models import Patient, MedicalRecord, PatientDoctorRelation, Case, CaseMessage, MessageReaction
 from django.http import JsonResponse
@@ -1259,11 +1259,23 @@ def register_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         password_confirm = request.POST.get('password_confirm')
+        registration_key = request.POST.get('registration_key', '').strip().upper()
         role = request.POST.get('role', 'doctor')
         hospital_id = request.POST.get('hospital')
         
         # Валидация
         errors = {}
+        
+        # Проверка регистрационного ключа
+        if not registration_key:
+            errors['registration_key'] = 'Регистрационный ключ обязателен'
+        else:
+            try:
+                key_obj = RegistrationKey.objects.get(key=registration_key)
+                if key_obj.is_used:
+                    errors['registration_key'] = 'Этот ключ уже использован'
+            except RegistrationKey.DoesNotExist:
+                errors['registration_key'] = 'Неверный регистрационный ключ'
         
         if not email:
             errors['email'] = 'Email обязателен'
@@ -1303,6 +1315,10 @@ def register_view(request):
                 hospital=hospital
             )
             
+            # Помечаем ключ как использованный
+            key_obj = RegistrationKey.objects.get(key=registration_key)
+            key_obj.use(user)
+            
             # Автоматически входим пользователя
             auth_login(request, user)
             messages.success(request, 'Регистрация успешна! Добро пожаловать!')
@@ -1323,3 +1339,52 @@ def register_view(request):
         'hospitals': hospitals,
     }
     return render(request, 'accounts/register.html', context)
+
+
+@login_required
+def generate_registration_keys_view(request):
+    """Генерация регистрационных ключей (для администраторов)."""
+    user = request.user
+    if user.role not in ['superadmin', 'hospital_admin']:
+        messages.error(request, 'Недостаточно прав.')
+        return redirect('accounts:cabinet')
+    
+    count = int(request.GET.get('count', 5))
+    if count < 1 or count > 20:
+        count = 5
+    
+    created_keys = []
+    for _ in range(count):
+        key_obj = RegistrationKey.create_key(created_by=user)
+        created_keys.append(key_obj.key)
+    
+    messages.success(request, f'Создано {count} регистрационных ключей: {", ".join(created_keys)}')
+    return redirect('accounts:registration_keys')
+
+
+@login_required
+def registration_keys_view(request):
+    """Страница управления регистрационными ключами."""
+    user = request.user
+    if user.role not in ['superadmin', 'hospital_admin']:
+        messages.error(request, 'Недостаточно прав.')
+        return redirect('accounts:cabinet')
+    
+    # Получаем ключи в зависимости от роли
+    if user.role == 'superadmin':
+        keys = RegistrationKey.objects.all().select_related('created_by', 'used_by')
+    else:  # hospital_admin
+        keys = RegistrationKey.objects.filter(created_by=user).select_related('created_by', 'used_by')
+    
+    # Статистика
+    total_keys = keys.count()
+    active_keys = keys.filter(is_used=False).count()
+    used_keys = keys.filter(is_used=True).count()
+    
+    context = {
+        'keys': keys,
+        'total_keys': total_keys,
+        'active_keys': active_keys,
+        'used_keys': used_keys,
+    }
+    return render(request, 'accounts/registration_keys.html', context)

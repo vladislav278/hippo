@@ -96,6 +96,11 @@
                         </button>
                     </form>
                 {% endif %}
+                {% if user.role in 'superadmin hospital_admin' %}
+                    <a href="{% url 'accounts:registration_keys' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-key"></i> Регистрационные ключи
+                    </a>
+                {% endif %}
                 
                 {% if user.role == 'doctor' %}
                     <form method="post" action="{% url 'accounts:clear_my_patients' %}" onsubmit="return confirm('Убрать всех пациентов у текущего врача?');">

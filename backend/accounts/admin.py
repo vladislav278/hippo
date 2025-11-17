@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User
+from .models import User, RegistrationKey
 
 
 @admin.register(User)
@@ -11,3 +11,12 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = BaseUserAdmin.fieldsets + (
         ('Дополнительная информация', {'fields': ('role', 'hospital')}),
     )
+
+
+@admin.register(RegistrationKey)
+class RegistrationKeyAdmin(admin.ModelAdmin):
+    list_display = ['key', 'is_used', 'created_by', 'created_at', 'used_by', 'used_at']
+    list_filter = ['is_used', 'created_at', 'used_at']
+    search_fields = ['key']
+    readonly_fields = ['key', 'created_at', 'used_at']
+    ordering = ['-created_at']

@@ -82,6 +82,25 @@
                 </div>
                 
                 <div class="form-group">
+                    <label for="registration_key">Регистрационный ключ *</label>
+                    <input 
+                        type="text" 
+                        id="registration_key" 
+                        name="registration_key" 
+                        class="form-control {% if errors.registration_key %}error{% endif %}"
+                        value="{{ form_data.registration_key|default:'' }}"
+                        placeholder="Введите регистрационный ключ"
+                        required
+                        style="text-transform: uppercase;"
+                    >
+                    {% if errors.registration_key %}
+                        <span class="error-message">{{ errors.registration_key }}</span>
+                    {% else %}
+                        <small class="form-hint">Получите ключ у администратора больницы</small>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
                     <label for="hospital">Больница</label>
                     <select 
                         id="hospital" 
@@ -108,5 +127,17 @@
         </div>
     </div>
 </div>
+
+<script>
+// Автоматическое преобразование регистрационного ключа в верхний регистр
+document.addEventListener('DOMContentLoaded', function() {
+    const keyInput = document.getElementById('registration_key');
+    if (keyInput) {
+        keyInput.addEventListener('input', function(e) {
+            e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        });
+    }
+});
+</script>
 {% endblock %}
 

@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+import secrets
+import string
 
 
 class User(AbstractUser):
@@ -89,3 +91,60 @@ class User(AbstractUser):
             return ' '.join(parts)
         # Если нет ФИО, возвращаем email
         return self.email or 'Пользователь'
+
+
+class RegistrationKey(models.Model):
+    """Одноразовый ключ для регистрации врачей."""
+    
+    key = models.CharField(max_length=32, unique=True, verbose_name="Ключ")
+    is_used = models.BooleanField(default=False, verbose_name="Использован")
+    used_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='registration_keys',
+        verbose_name="Использован пользователем"
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_registration_keys',
+        verbose_name="Создан пользователем"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Создан")
+    used_at = models.DateTimeField(null=True, blank=True, verbose_name="Использован")
+    
+    class Meta:
+        verbose_name = "Регистрационный ключ"
+        verbose_name_plural = "Регистрационные ключи"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        status = "Использован" if self.is_used else "Активен"
+        return f"{self.key} ({status})"
+    
+    @staticmethod
+    def generate_key(length=16):
+        """Генерирует случайный ключ."""
+        alphabet = string.ascii_uppercase + string.digits
+        return ''.join(secrets.choice(alphabet) for _ in range(length))
+    
+    @classmethod
+    def create_key(cls, created_by=None):
+        """Создает новый регистрационный ключ."""
+        key = cls.generate_key()
+        # Убеждаемся, что ключ уникален
+        while cls.objects.filter(key=key).exists():
+            key = cls.generate_key()
+        return cls.objects.create(key=key, created_by=created_by)
+    
+    def use(self, user):
+        """Помечает ключ как использованный."""
+        from django.utils import timezone
+        self.is_used = True
+        self.used_by = user
+        self.used_at = timezone.now()
+        self.save()
