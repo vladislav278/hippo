@@ -45,4 +45,4 @@ Thumbs.db
 # Environment
 .env
 .env.local
-.env.example
+# .env.example - пример файла, должен быть в репозитории
