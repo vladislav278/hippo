@@ -58,7 +58,7 @@
                                                         {{ relation.doctor.get_initials }}
                                                     </div>
                                                     <div>
-                                                        <div>{{ relation.doctor.email }}</div>
+                                                        <div>{{ relation.doctor.get_full_name }}</div>
                                                         {% if relation.doctor.first_name or relation.doctor.last_name %}
                                                             <small class="text-muted">
                                                                 {{ relation.doctor.first_name }} {{ relation.doctor.last_name }}
@@ -117,7 +117,7 @@
                                     <option value="">-- Выберите врача --</option>
                                     {% for doctor in available_doctors %}
                                         <option value="{{ doctor.id }}">
-                                            {{ doctor.email }}
+                                            {{ doctor.get_full_name }}
                                             {% if doctor.first_name or doctor.last_name %}
                                                 ({{ doctor.first_name }} {{ doctor.last_name }})
                                             {% endif %}

@@ -168,7 +168,7 @@
                                                         {{ doctor.get_initials }}
                                                     </div>
                                                     <div>
-                                                        <div>{{ doctor.email }}</div>
+                                                        <div>{{ doctor.get_full_name }}</div>
                                                         <small class="text-muted">
                                                             {{ doctor.get_role_display }}
                                                             {% if doctor.specialty %} • {{ doctor.specialty }}{% endif %}

@@ -122,7 +122,7 @@
                                                     {% elif case.status == 'stable' %}
                                                         {% if msg_data.message.author.specialty %}{{ msg_data.message.author.specialty }}{% else %}Врач{% endif %}
                                                     {% else %}
-                                                        {{ msg_data.message.author.email }}
+                                                        {{ msg_data.message.author.get_full_name }}
                                                     {% endif %}
                                                 </strong>
                                                 <span class="ms-2 small opacity-75">
@@ -239,7 +239,7 @@
                     {% endif %}
                     <div class="mb-2">
                         <div class="text-muted xsmall mb-1">Создал</div>
-                        <div class="xsmall">{% if case.status == 'stable' %}Создатель консилиума{% else %}{{ case.created_by.email|default:"Неизвестно" }}{% endif %}</div>
+                        <div class="xsmall">{% if case.status == 'stable' %}Создатель консилиума{% else %}{{ case.created_by.get_full_name|default:"Неизвестно" }}{% endif %}</div>
                     </div>
                     <div class="d-flex gap-1">
                         <a href="{% url 'accounts:cases' %}" class="btn btn-outline-secondary btn-sm flex-fill py-1" title="Назад">
@@ -337,7 +337,7 @@
                             {% endif %}
                             <div class="mb-2">
                                 <h6 class="text-muted small mb-1">Создал:</h6>
-                                <p class="mb-0 small">{% if case.status == 'stable' %}Создатель консилиума{% else %}{{ case.created_by.email|default:"Неизвестно" }}{% endif %}</p>
+                                <p class="mb-0 small">{% if case.status == 'stable' %}Создатель консилиума{% else %}{{ case.created_by.get_full_name|default:"Неизвестно" }}{% endif %}</p>
                             </div>
                             <a href="{% url 'accounts:cases' %}" class="btn btn-outline-secondary btn-sm w-100">
                                 <i class="bi bi-arrow-left"></i> Назад

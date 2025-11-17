@@ -98,7 +98,7 @@
                                 </p>
                                 <div class="d-flex align-items-center flex-wrap">
                                     {% for doctor in case_data.doctors %}
-                                        <div class="avatar-circle me-2 mb-2" title="{{ doctor.email }}">
+                                        <div class="avatar-circle me-2 mb-2" title="{{ doctor.get_full_name }}">
                                             {{ doctor.get_initials }}
                                         </div>
                                     {% endfor %}
@@ -123,7 +123,7 @@
                                         <i class="bi bi-people"></i>
                                     </a>
                                     <small class="text-muted">
-                                        <i class="bi bi-person"></i> Создал: {{ case_data.case.created_by.email|default:"Неизвестно" }}
+                                        <i class="bi bi-person"></i> Создал: {{ case_data.case.created_by.get_full_name|default:"Неизвестно" }}
                                     </small>
                                 </div>
                                 {% if case_data.unread_count > 0 %}
