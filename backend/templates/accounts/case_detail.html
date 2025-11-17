@@ -1,0 +1,721 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Консилиум: {% if case.status == 'stable' %}Анонимный пациент{% else %}{{ case.patient.full_name }}{% endif %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<style>
+/* Скрываем всплывающие уведомления на странице консилиума */
+.alert {
+    display: none !important;
+}
+
+/* Стили вкладок (Чат / Пациент / Анализы / Участники) */
+.nav-tabs .nav-link {
+    color: #212529 !important; /* темный текст */
+    opacity: 0.7;
+    font-weight: 500;
+}
+.nav-tabs .nav-link:hover {
+    opacity: 1;
+    color: #0d6efd !important;
+}
+.nav-tabs .nav-link.active {
+    color: #0d6efd !important;
+    background-color: #ffffff;
+    border-color: #dee2e6 #dee2e6 #ffffff;
+    opacity: 1;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(13, 110, 253, 0.08);
+}
+
+/* Ограничение текста */
+.clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.clamp-5 {
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Доп. уменьшенные размеры */
+.xsmall { font-size: 0.8rem; line-height: 1.1; }
+
+/* Показываем только чат — скрываем вкладки и правую колонку */
+/* (ранее скрытые вкладки/колонки восстановлены) */
+</style>
+<div class="container my-4">
+    <!-- Вкладки -->
+    <ul class="nav nav-tabs mb-3" id="caseTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-chat" data-bs-toggle="tab" data-bs-target="#pane-chat" type="button" role="tab">Чат</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-members" data-bs-toggle="tab" data-bs-target="#pane-members" type="button" role="tab">Участники</button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="pane-chat" role="tabpanel">
+            <div class="row">
+                <!-- Чат (слева, основная часть) -->
+                <div class="col-lg-8 mb-4">
+            <!-- Заголовок чата -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1">
+                                <i class="bi bi-chat-dots"></i> Обсуждение: {% if case.status == 'stable' %}Анонимный пациент{% else %}{{ case.patient.full_name }}{% endif %}
+                            </h5>
+                            <small>
+                                <i class="bi bi-calendar3"></i> {{ case.admission_date|date:"d.m.Y" }}
+                            </small>
+                        </div>
+                        <div>
+                            {% if case.status == 'urgent' %}
+                                <span class="badge bg-danger fs-6">
+                                    <i class="bi bi-exclamation-triangle"></i> Срочно
+                                </span>
+                            {% elif case.status == 'monitoring' %}
+                                <span class="badge bg-warning fs-6">
+                                    <i class="bi bi-eye"></i> Наблюдение
+                                </span>
+                            {% else %}
+                                <span class="badge bg-success fs-6">
+                                    <i class="bi bi-check-circle"></i> Стабильный
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Чат -->
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <!-- Сообщения -->
+                    <div class="chat-messages p-3" id="chatMessages" style="max-height: 600px; overflow-y: auto;">
+                        {% if messages %}
+                            {% for msg_data in messages %}
+                                <div class="message-item mb-3 {% if msg_data.is_own %}message-own{% endif %}">
+                                    <div class="d-flex {% if msg_data.is_own %}justify-content-end{% else %}justify-content-start{% endif %}">
+                                        <div class="message-bubble {% if msg_data.is_own %}bg-primary text-white{% else %}bg-light{% endif %}" style="max-width: 70%; border-radius: 18px; padding: 12px 16px;">
+                                            <div class="d-flex align-items-center mb-1">
+                                                <div class="avatar-circle-small me-2" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                                                    {{ msg_data.message.author.get_initials }}
+                                                </div>
+                                                <strong class="small">
+                                                    {% if msg_data.is_own %}
+                                                        Вы
+                                                    {% elif case.status == 'stable' %}
+                                                        {% if msg_data.message.author.specialty %}{{ msg_data.message.author.specialty }}{% else %}Врач{% endif %}
+                                                    {% else %}
+                                                        {{ msg_data.message.author.email }}
+                                                    {% endif %}
+                                                </strong>
+                                                <span class="ms-2 small opacity-75">
+                                                    {{ msg_data.message.created_at|date:"d.m.Y H:i" }}
+                                                </span>
+                                            </div>
+                                            <p class="mb-2">{{ msg_data.message.content|linebreaks }}</p>
+                                            
+                                            <!-- Реакции -->
+                                            <div class="message-reactions mt-2" data-message-id="{{ msg_data.message.id }}">
+                                                {% if msg_data.reactions %}
+                                                    <div class="reactions-list d-flex flex-wrap gap-1 mb-1">
+                                                        {% for reaction_type, users in msg_data.reactions.items %}
+                                                            <button 
+                                                                class="btn btn-sm reaction-btn {% if reaction_type in msg_data.user_reactions %}reaction-active{% endif %}" 
+                                                                data-reaction="{{ reaction_type }}"
+                                                                title="{% for user in users %}{{ user }}{% if not forloop.last %}, {% endif %}{% endfor %}"
+                                                            >
+                                                                <span class="reaction-emoji">{{ reaction_type }}</span>
+                                                                <span class="reaction-count">{{ users|length }}</span>
+                                                            </button>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                                
+                                                <!-- Кнопки лайк/дизлайк -->
+                                                <div class="d-flex gap-1">
+                                                    <button class="btn btn-sm btn-link text-muted reaction-option-btn {% if '👍' in msg_data.user_reactions %}active{% endif %}" data-reaction="👍" type="button" title="Лайк">
+                                                        <i class="bi bi-hand-thumbs-up"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-link text-muted reaction-option-btn {% if '👎' in msg_data.user_reactions %}active{% endif %}" data-reaction="👎" type="button" title="Дизлайк">
+                                                        <i class="bi bi-hand-thumbs-down"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center text-muted py-5">
+                                <i class="bi bi-chat-left fs-1 d-block mb-3"></i>
+                                <p>Пока нет сообщений. Начните обсуждение!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Быстрые реакции -->
+                    <div class="border-top p-2 bg-white">
+                        <div class="d-flex flex-wrap gap-2 px-1 py-1">
+                            <button type="button" class="btn btn-sm btn-outline-dark quick-reply" data-text="Согласен">Согласен</button>
+                            <button type="button" class="btn btn-sm btn-outline-dark quick-reply" data-text="Изучаю">Изучаю</button>
+                            <button type="button" class="btn btn-sm btn-outline-dark quick-reply" data-text="Нужно время">Нужно время</button>
+                            <button type="button" class="btn btn-sm btn-outline-dark quick-reply" data-text="Возражаю">Возражаю</button>
+                        </div>
+                    </div>
+
+                    <!-- Форма отправки сообщения -->
+                    <div class="border-top p-3 bg-light">
+                        <form method="post" id="messageForm">
+                            {% csrf_token %}
+                            <div class="input-group">
+                                <textarea 
+                                    class="form-control" 
+                                    name="content" 
+                                    id="messageContent"
+                                    rows="2" 
+                                    placeholder="Введите сообщение..." 
+                                    required
+                                ></textarea>
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="bi bi-send"></i> Отправить
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+                </div>
+
+                <!-- Информация и участники (справа) -->
+                <div class="col-lg-4">
+            <!-- Информация о консилиуме -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-light py-2">
+                    <h6 class="mb-0 small">
+                        <i class="bi bi-info-circle"></i> Информация о консилиуме
+                    </h6>
+                </div>
+                <div class="card-body py-2">
+                    <div class="mb-2">
+                        <div class="text-muted xsmall mb-1">Пациент</div>
+                        <div class="xsmall fw-semibold">
+                            {% if case.status == 'stable' %}
+                                Анонимный пациент
+                                <a href="{% url 'accounts:patient_detail_anonymous' case.id case.patient.id %}" class="btn btn-sm btn-outline-primary ms-2 py-0" title="Карточка пациента">
+                                    <i class="bi bi-person-badge"></i> Карточка
+                                </a>
+                            {% else %}
+                                <a href="{% url 'accounts:patient_detail' case.patient.id %}" class="text-decoration-none">{{ case.patient.full_name }}</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="text-muted xsmall mb-1">Диагноз</div>
+                        <div class="xsmall clamp-1">{{ case.diagnosis }}</div>
+                    </div>
+                    {% if case.description %}
+                        <div class="mb-2">
+                            <div class="text-muted xsmall mb-1">Описание</div>
+                            <div id="caseDescription" class="xsmall text-muted clamp-3">{{ case.description }}</div>
+                            <button type="button" id="toggleDescBtn" class="btn btn-link btn-sm p-0 mt-1 xsmall">Показать полностью</button>
+                        </div>
+                    {% endif %}
+                    <div class="mb-2">
+                        <div class="text-muted xsmall mb-1">Создал</div>
+                        <div class="xsmall">{% if case.status == 'stable' %}Создатель консилиума{% else %}{{ case.created_by.email|default:"Неизвестно" }}{% endif %}</div>
+                    </div>
+                    <div class="d-flex gap-1">
+                        <a href="{% url 'accounts:cases' %}" class="btn btn-outline-secondary btn-sm flex-fill py-1" title="Назад">
+                            <i class="bi bi-arrow-left"></i>
+                        </a>
+                        {% if case.status != 'stable' %}
+                            <a href="{% url 'accounts:complete_case' case.id %}" class="btn btn-outline-success btn-sm flex-fill py-1" title="Завершить консилиум">
+                                <i class="bi bi-check-circle"></i> Завершить
+                            </a>
+                        {% endif %}
+                        <a href="{% url 'admin:patients_case_change' case.id %}" class="btn btn-outline-primary btn-sm flex-fill py-1" title="Редактировать">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        <!-- Вкладки Пациент и Анализы удалены по требованиям -->
+
+        <div class="tab-pane fade" id="pane-members" role="tabpanel">
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="bi bi-people"></i> Участники ({{ doctors|length }})</h6>
+                        </div>
+                        <div class="card-body">
+                            {% if doctors %}
+                                <div class="list-group list-group-flush">
+                                    {% for doctor in doctors %}
+                                        {% with status=doctor.get_presence_status %}
+                                        <div class="list-group-item border-0 px-0 py-2 d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle me-3" style="width: 40px; height: 40px;">
+                                                    {{ doctor.get_initials }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold small">
+                                                        {% if case.status == 'stable' %}
+                                                            {% if doctor.specialty %}{{ doctor.specialty }}{% else %}Врач{% endif %}
+                                                        {% else %}
+                                                            {{ doctor.email }}
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="text-muted small">
+                                                        {% if case.status != 'stable' and doctor.specialty %}{{ doctor.specialty }} • {% endif %}
+                                                        {% with status=doctor.get_presence_status %}Статус: {{ status.1 }}{% endwith %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                {% if doctor == user %}<span class="badge bg-primary small">Вы</span>{% endif %}
+                                                {% if doctor == case.created_by %}<span class="badge bg-success small">Создатель</span>{% endif %}
+                                            </div>
+                                        </div>
+                                        {% endwith %}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted mb-0">Участники пока не добавлены.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="bi bi-info-circle"></i> Информация о консилиуме
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <h6 class="text-muted small mb-1">Пациент:</h6>
+                                <p class="mb-0 small">
+                                    {% if case.status == 'stable' %}
+                                        Анонимный пациент
+                                        <a href="{% url 'accounts:patient_detail_anonymous' case.id case.patient.id %}" class="btn btn-sm btn-outline-primary ms-2 py-0" title="Карточка пациента">
+                                            <i class="bi bi-person-badge"></i> Карточка
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'accounts:patient_detail' case.patient.id %}" class="text-decoration-none">{{ case.patient.full_name }}</a>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="mb-2">
+                                <h6 class="text-muted small mb-1">Диагноз (МКБ-10):</h6>
+                                <p class="mb-0 small clamp-1">{{ case.diagnosis }}</p>
+                            </div>
+                            {% if case.description %}
+                                <div class="mb-2">
+                                    <h6 class="text-muted small mb-1">Описание:</h6>
+                                    <div class="small text-muted clamp-5">{{ case.description }}</div>
+                                </div>
+                            {% endif %}
+                            <div class="mb-2">
+                                <h6 class="text-muted small mb-1">Создал:</h6>
+                                <p class="mb-0 small">{% if case.status == 'stable' %}Создатель консилиума{% else %}{{ case.created_by.email|default:"Неизвестно" }}{% endif %}</p>
+                            </div>
+                            <a href="{% url 'accounts:cases' %}" class="btn btn-outline-secondary btn-sm w-100">
+                                <i class="bi bi-arrow-left"></i> Назад
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+            </div>
+
+            <!-- (старый блок участников снизу удален) -->
+        </div>
+    </div>
+</div>
+
+<!-- Участники — снизу страницы (под чатом) -->
+<div class="container my-3">
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="bi bi-people"></i> Участники ({{ doctors|length }})</h6>
+        </div>
+        <div class="card-body">
+            {% if doctors %}
+                <div class="row">
+                    {% for doctor in doctors %}
+                        <div class="col-md-6 mb-2">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle me-3" style="width: 40px; height: 40px;">
+                                    {{ doctor.get_initials }}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold small">
+                                        {% if case.status == 'stable' %}
+                                            {% if doctor.specialty %}{{ doctor.specialty }}{% else %}Врач{% endif %}
+                                        {% else %}
+                                            {{ doctor.email }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-muted small">
+                                        {% if case.status != 'stable' and doctor.specialty %}{{ doctor.specialty }} • {% endif %}
+                                        {% with status=doctor.get_presence_status %}Статус: {{ status.1 }}{% endwith %}
+                                    </div>
+                                    <div>
+                                        {% if doctor == user %}<span class="badge bg-primary small">Вы</span>{% endif %}
+                                        {% if doctor == case.created_by %}<span class="badge bg-success small">Создатель</span>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted mb-0">Участники пока не добавлены.</p>
+            {% endif %}
+        </div>
+    </div>
+    </div>
+
+<style>
+.message-bubble {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.message-own .message-bubble {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.avatar-circle-small {
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.avatar-circle {
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.875rem;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.chat-messages {
+    background-color: #f8f9fa;
+}
+
+.chat-messages::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.message-reactions {
+    position: relative;
+}
+
+.reactions-list {
+    display: inline-flex;
+}
+
+.reaction-btn {
+    border-radius: 12px;
+    padding: 2px 8px;
+    border: 1px solid #dee2e6;
+    background: white;
+    transition: all 0.2s;
+}
+
+.reaction-btn:hover {
+    background: #f8f9fa;
+    transform: scale(1.1);
+}
+
+.reaction-active {
+    background: #e7f3ff !important;
+    border-color: #0d6efd !important;
+}
+
+.reaction-emoji {
+    font-size: 1rem;
+    margin-right: 4px;
+}
+
+.reaction-count {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #495057;
+    margin-left: 2px;
+}
+
+.reaction-option-btn {
+    padding: 2px 6px;
+    font-size: 0.875rem;
+    opacity: 0.6;
+    transition: opacity 0.2s, color 0.2s;
+}
+
+.reaction-option-btn:hover {
+    opacity: 1;
+}
+
+.reaction-option-btn.active {
+    opacity: 1;
+    color: #0d6efd !important;
+}
+
+/* Иконки внутри кнопок реакций не должны перехватывать клики */
+.reaction-option-btn i,
+.reaction-btn i,
+.reaction-option-btn .reaction-emoji {
+    pointer-events: none;
+}
+</style>
+
+<script>
+// Автопрокрутка вниз только при первой загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) {
+        // Прокручиваем только при первой загрузке, не после отправки
+        if (!sessionStorage.getItem('messageSent')) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        sessionStorage.removeItem('messageSent');
+    }
+    
+    const messageForm = document.getElementById('messageForm');
+    const messageContent = document.getElementById('messageContent');
+    
+    if (messageForm && messageContent) {
+        // Отправка по Enter (Shift+Enter для новой строки)
+        messageContent.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const content = messageContent.value.trim();
+                if (content) {
+                    // Помечаем, что сообщение было отправлено
+                    sessionStorage.setItem('messageSent', 'true');
+                    messageForm.submit();
+                }
+            }
+        });
+    }
+    
+    // Обработка реакций - простой и надежный подход
+    const chatMessagesContainer = document.getElementById('chatMessages');
+    if (chatMessagesContainer) {
+        chatMessagesContainer.addEventListener('click', function(e) {
+            // Используем closest для надежного поиска кнопки
+            const btn = e.target.closest('button.reaction-option-btn, button.reaction-btn');
+            
+            if (btn) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const reaction = btn.getAttribute('data-reaction');
+                const reactionsContainer = btn.closest('.message-reactions');
+                
+                if (reactionsContainer && reaction) {
+                    const messageId = reactionsContainer.getAttribute('data-message-id');
+                    if (messageId) {
+                        // Блокируем повторные клики
+                        if (btn.disabled || btn.hasAttribute('data-processing')) {
+                            return;
+                        }
+                        btn.setAttribute('data-processing', 'true');
+                        btn.style.pointerEvents = 'none';
+                        
+                        toggleReaction(messageId, reaction);
+                        
+                        // Разблокируем через секунду
+                        setTimeout(() => {
+                            btn.removeAttribute('data-processing');
+                            btn.style.pointerEvents = '';
+                        }, 1000);
+                    }
+                }
+            }
+        });
+    }
+
+    // Быстрые реакции: подставляем текст и отправляем
+    document.querySelectorAll('.quick-reply').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const input = document.getElementById('messageContent');
+            if (input) {
+                input.value = btn.getAttribute('data-text');
+                sessionStorage.setItem('messageSent', 'true');
+                document.getElementById('messageForm').submit();
+            }
+        });
+    });
+
+    // Тоггл описания (свернуть/развернуть)
+    const desc = document.getElementById('caseDescription');
+    const toggleBtn = document.getElementById('toggleDescBtn');
+    if (desc && toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+            const isClamped = desc.classList.contains('clamp-5');
+            if (isClamped) {
+                desc.classList.remove('clamp-5');
+                toggleBtn.textContent = 'Свернуть';
+            } else {
+                desc.classList.add('clamp-5');
+                toggleBtn.textContent = 'Показать полностью';
+            }
+        });
+    }
+});
+
+function toggleReaction(messageId, reaction) {
+    // Предотвращаем множественные запросы
+    const key = messageId + '_' + reaction;
+    if (window.reactionInProgress && window.reactionInProgress[key]) {
+        return;
+    }
+    
+    if (!window.reactionInProgress) {
+        window.reactionInProgress = {};
+    }
+    window.reactionInProgress[key] = true;
+    
+    const formData = new FormData();
+    formData.append('reaction', reaction);
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfToken) {
+        formData.append('csrfmiddlewaretoken', csrfToken.value);
+    }
+    
+    fetch('/cabinet/messages/' + messageId + '/reaction/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            updateReactions(messageId, data.reactions, data.user_reactions);
+        } else {
+            console.error('Error:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Снимаем блокировку через небольшую задержку
+        setTimeout(() => {
+            if (window.reactionInProgress) {
+                delete window.reactionInProgress[key];
+            }
+        }, 500);
+    });
+}
+
+function updateReactions(messageId, reactions, userReactions) {
+    const reactionsContainer = document.querySelector('.message-reactions[data-message-id="' + messageId + '"]');
+    if (!reactionsContainer) return;
+    
+    const reactionsList = reactionsContainer.querySelector('.reactions-list');
+    
+    // Очищаем существующие реакции
+    if (reactionsList) {
+        reactionsList.innerHTML = '';
+    } else {
+        const newList = document.createElement('div');
+        newList.className = 'reactions-list d-flex flex-wrap gap-1';
+        const optionButtons = reactionsContainer.querySelector('.d-flex.gap-1');
+        reactionsContainer.insertBefore(newList, optionButtons);
+    }
+    
+    // Добавляем новые реакции
+    for (const [reactionType, users] of Object.entries(reactions)) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-sm reaction-btn' + (userReactions.includes(reactionType) ? ' reaction-active' : '');
+        btn.setAttribute('data-reaction', reactionType);
+        btn.setAttribute('title', users.join(', '));
+        btn.innerHTML = '<span class="reaction-emoji">' + reactionType + '</span><span class="reaction-count">' + users.length + '</span>';
+        
+        // Обработчик не нужен - используется делегирование событий
+        
+        reactionsList.appendChild(btn);
+    }
+    
+    // Обновляем состояние кнопок лайк/дизлайк
+    const likeBtn = reactionsContainer.querySelector('.reaction-option-btn[data-reaction="👍"]');
+    const dislikeBtn = reactionsContainer.querySelector('.reaction-option-btn[data-reaction="👎"]');
+    
+    if (likeBtn) {
+        if (userReactions.includes('👍')) {
+            likeBtn.classList.add('active');
+        } else {
+            likeBtn.classList.remove('active');
+        }
+    }
+    
+    if (dislikeBtn) {
+        if (userReactions.includes('👎')) {
+            dislikeBtn.classList.add('active');
+        } else {
+            dislikeBtn.classList.remove('active');
+        }
+    }
+    
+    // Если нет реакций, скрываем список
+    if (Object.keys(reactions).length === 0 && reactionsList) {
+        reactionsList.style.display = 'none';
+    } else if (reactionsList) {
+        reactionsList.style.display = 'flex';
+    }
+}
+</script>
+{% endblock %}

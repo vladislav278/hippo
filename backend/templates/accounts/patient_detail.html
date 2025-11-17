@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Карточка пациента - {{ patient.full_name }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Кнопка "Назад" -->
+    <div class="mb-3">
+        <a href="{% url 'accounts:my_patients' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Назад
+        </a>
+    </div>
+    
+    <!-- Заголовок -->
+    <h2 class="h3 mb-4">
+        <i class="bi bi-person-badge text-primary"></i> Карточка пациента
+    </h2>
+    
+    <!-- Карточка пациента -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex align-items-start">
+                <!-- Аватар -->
+                <div class="flex-shrink-0 me-3">
+                    <div class="avatar-circle-large">
+                        {{ patient.last_name|first|upper }}{{ patient.first_name|first|upper }}
+                    </div>
+                </div>
+                
+                <!-- Информация -->
+                <div class="flex-grow-1">
+                    <h3 class="h4 mb-2">{{ patient.full_name }}</h3>
+                    <p class="text-muted mb-3">
+                        {{ patient.age }} лет • {{ patient.get_gender_display_short }} • Карта №{{ patient.card_number }}
+                    </p>
+                    
+                    <!-- Бейджи -->
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{% url 'accounts:cases' %}?patient={{ patient.id }}" class="badge bg-danger text-decoration-none px-3 py-2">
+                            <i class="bi bi-chat-dots"></i> Консилиум
+                        </a>
+                        {% if patient.phone %}
+                            <a href="tel:{{ patient.phone }}" class="badge bg-primary text-decoration-none px-3 py-2">
+                                <i class="bi bi-telephone"></i> Позвонить
+                            </a>
+                        {% else %}
+                            <span class="badge bg-secondary px-3 py-2">
+                                <i class="bi bi-telephone"></i> Позвонить
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Вкладки -->
+    <ul class="nav nav-tabs mb-4" id="patientTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab">
+                Основное
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="emk-tab" data-bs-toggle="tab" data-bs-target="#emk" type="button" role="tab" aria-controls="emk" aria-selected="true">
+                ЭМК
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="cases-tab" data-bs-toggle="tab" data-bs-target="#cases" type="button" role="tab">
+                Консилиумы
+            </button>
+        </li>
+    </ul>
+    
+    <!-- Контент вкладок -->
+    <div class="tab-content" id="patientTabsContent">
+        <!-- Вкладка "Основное" -->
+        <div class="tab-pane fade" id="basic" role="tabpanel" aria-labelledby="basic-tab">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Основная информация</h5>
+                    <p class="text-muted">Содержимое вкладки "Основное" будет добавлено позже.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Вкладка "ЭМК" -->
+        <div class="tab-pane fade show active" id="emk" role="tabpanel" aria-labelledby="emk-tab">
+            <!-- Блок "Данные из ЕМИАС" -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-primary fs-6 px-3 py-2 mb-2">
+                                <i class="bi bi-database"></i> Данные из ЕМИАС
+                            </span>
+                            {% if patient.emias_last_synced %}
+                                <p class="text-muted small mb-0">
+                                    Синхронизировано {{ patient.emias_last_synced|timesince }} назад
+                                </p>
+                            {% else %}
+                                <p class="text-muted small mb-0">
+                                    Данные не синхронизированы
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Блок "Аллергии" -->
+            <div class="card shadow-sm mb-3 border-danger">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-exclamation-triangle-fill text-danger"></i> Аллергии
+                    </h5>
+                    {% if allergies %}
+                        <ul class="list-unstyled mb-0">
+                            {% for allergy in allergies %}
+                                <li class="mb-2">
+                                    <strong>{{ allergy.name }}</strong>
+                                    {% if allergy.comment %}
+                                        <span class="text-muted">— {{ allergy.comment }}</span>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">Аллергии не указаны</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Блок "Лабораторные результаты" -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-clipboard-data text-primary"></i> Лабораторные результаты
+                    </h5>
+                    {% if lab_results %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Показатель</th>
+                                        <th>Значение</th>
+                                        <th>Единицы</th>
+                                        <th>Референс</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for key, value in lab_results.items %}
+                                        <tr>
+                                            <td><strong>{{ key }}</strong></td>
+                                            <td>{{ value.value|default:"—" }}</td>
+                                            <td>{{ value.unit|default:"—" }}</td>
+                                            <td>
+                                                {% if value.reference %}
+                                                    <span class="text-muted">{{ value.reference }}</span>
+                                                {% else %}
+                                                    —
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Лабораторные результаты отсутствуют</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Блок "Текущие препараты" -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-capsule text-info"></i> Текущие препараты
+                    </h5>
+                    {% if current_medications %}
+                        <ul class="list-unstyled mb-0">
+                            {% for medication in current_medications %}
+                                <li class="mb-2">
+                                    <i class="bi bi-dot"></i> {{ medication }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">Текущие препараты не указаны</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Блок "Хронические заболевания" -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-heart-pulse text-warning"></i> Хронические заболевания
+                    </h5>
+                    {% if chronic_diseases %}
+                        <ul class="list-unstyled mb-0">
+                            {% for disease in chronic_diseases %}
+                                <li class="mb-2">
+                                    <i class="bi bi-dot"></i> {{ disease }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">Хронические заболевания не указаны</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Блок "Последняя госпитализация" -->
+            {% if last_hospitalization %}
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-hospital text-secondary"></i> Последняя госпитализация
+                        </h5>
+                        <p class="mb-0">{{ last_hospitalization }}</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Вкладка "Консилиумы" -->
+        <div class="tab-pane fade" id="cases" role="tabpanel" aria-labelledby="cases-tab">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Консилиумы пациента</h5>
+                    {% if patient_cases %}
+                        <div class="list-group">
+                            {% for case in patient_cases %}
+                                <a href="{% url 'accounts:case_detail' case.id %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ case.diagnosis }}</h6>
+                                            <p class="mb-1 small text-muted">{{ case.description|truncatewords:20 }}</p>
+                                            <small class="text-muted">
+                                                <i class="bi bi-calendar3"></i> {{ case.admission_date|date:"d.m.Y" }}
+                                                {% if case.status == 'urgent' %}
+                                                    <span class="badge bg-danger ms-2">Срочно</span>
+                                                {% elif case.status == 'monitoring' %}
+                                                    <span class="badge bg-warning ms-2">Наблюдение</span>
+                                                {% else %}
+                                                    <span class="badge bg-success ms-2">Стабильный</span>
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                        <i class="bi bi-chevron-right text-muted"></i>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Консилиумов не найдено</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-circle-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.5rem;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.nav-tabs .nav-link {
+    color: #495057;
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+

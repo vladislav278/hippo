@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Главная - {{ block.super }}{% endblock %}
+
+{% block content %}
+<!-- Hero секция -->
+<div class="bg-primary text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8 mx-auto text-center">
+                <h1 class="display-4 fw-bold mb-3">
+                    <i class="bi bi-heart-pulse"></i> Гиппократ
+                </h1>
+                <p class="lead mb-4">Платформа для консилиумов врачей и управления медицинскими данными</p>
+                
+                {% if user.is_authenticated %}
+                    <div class="d-flex gap-3 justify-content-center">
+                        <a href="{% url 'accounts:cabinet' %}" class="btn btn-light btn-lg">
+                            <i class="bi bi-house-door"></i> Личный кабинет
+                        </a>
+                        <a href="{% url 'admin:index' %}" class="btn btn-outline-light btn-lg">
+                            <i class="bi bi-gear"></i> Админ-панель
+                        </a>
+                    </div>
+                    <div class="mt-4 p-3 bg-white bg-opacity-10 rounded">
+                        <h3 class="mb-3">Добро пожаловать, <strong>{{ user.get_full_name }}</strong>!</h3>
+                        <p class="mb-1">Ваша роль: <strong>{{ user.get_role_display }}</strong></p>
+                        {% if user.specialty %}
+                            <p class="mb-1">Специализация: <strong>{{ user.specialty }}</strong></p>
+                        {% endif %}
+                        {% if user.hospital %}
+                            <p class="mb-0">Больница: <strong>{{ user.hospital.name }}</strong></p>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="d-flex gap-3 justify-content-center">
+                        <a href="{% url 'accounts:register' %}" class="btn btn-light btn-lg">
+                            <i class="bi bi-person-plus"></i> Регистрация
+                        </a>
+                        <a href="{% url 'admin:index' %}" class="btn btn-outline-light btn-lg">
+                            <i class="bi bi-box-arrow-in-right"></i> Войти в систему
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not user.is_authenticated %}
+<!-- Features секция -->
+<div class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Возможности платформы</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-people fs-1 text-primary mb-3"></i>
+                        <h5 class="card-title">Управление пациентами</h5>
+                        <p class="card-text text-muted">Ведите учет пациентов, их медицинских карточек и истории лечения</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-hospital fs-1 text-info mb-3"></i>
+                        <h5 class="card-title">Работа с больницами</h5>
+                        <p class="card-text text-muted">Организуйте работу нескольких медицинских учреждений в одной системе</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-chat-dots fs-1 text-success mb-3"></i>
+                        <h5 class="card-title">Консилиумы врачей</h5>
+                        <p class="card-text text-muted">Проводите консилиумы и обсуждайте сложные случаи с коллегами</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-file-earmark-medical fs-1 text-warning mb-3"></i>
+                        <h5 class="card-title">Медицинские карточки</h5>
+                        <p class="card-text text-muted">Создавайте и ведите электронные медицинские карточки пациентов</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-shield-check fs-1 text-danger mb-3"></i>
+                        <h5 class="card-title">Безопасность данных</h5>
+                        <p class="card-text text-muted">Ролевой доступ и защита персональных медицинских данных</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-graph-up fs-1 text-secondary mb-3"></i>
+                        <h5 class="card-title">Статистика и отчеты</h5>
+                        <p class="card-text text-muted">Анализируйте данные и получайте статистику по пациентам и карточкам</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats секция -->
+<div class="bg-light py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Статистика платформы</h2>
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body text-center">
+                        <i class="bi bi-hospital fs-1 text-primary mb-3"></i>
+                        <h3 class="display-4 fw-bold">{{ total_hospitals }}</h3>
+                        <p class="text-muted mb-0">Больниц в системе</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body text-center">
+                        <i class="bi bi-people fs-1 text-success mb-3"></i>
+                        <h3 class="display-4 fw-bold">{{ total_patients }}</h3>
+                        <p class="text-muted mb-0">Пациентов</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Info секция -->
+<div class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <h2 class="mb-4">О платформе</h2>
+                <p class="lead">Платформа "Гиппократ" предназначена для организации работы медицинских учреждений, 
+                ведения учета пациентов и их медицинских карточек, а также для проведения консилиумов врачей.</p>
+                <p>Система поддерживает различные роли пользователей: суперадминистратор, администратор больницы и врач.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

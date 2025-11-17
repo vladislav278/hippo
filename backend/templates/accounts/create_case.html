@@ -1,0 +1,355 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Создать консилиум - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-plus-circle"></i> Создать новый консилиум
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if errors.general %}
+                        <div class="alert alert-danger">
+                            {{ errors.general }}
+                        </div>
+                    {% endif %}
+                    
+                    <form method="post" id="createCaseForm">
+                        {% csrf_token %}
+                        
+                        <!-- Выбор шаблона -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Шаблон консилиума (необязательно)</label>
+                            <div class="row g-3" id="templatesGrid">
+                                <div class="col-md-6">
+                                    <div class="card template-card" data-template-id="0">
+                                        <div class="card-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="template_id" id="template_0" value="0" checked>
+                                                <label class="form-check-label w-100" for="template_0">
+                                                    <strong>Без шаблона</strong>
+                                                    <p class="text-muted small mb-0 mt-1">Создать консилиум с нуля</p>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% for template in templates_list %}
+                                    <div class="col-md-6">
+                                        <div class="card template-card" data-template-id="{{ template.id }}">
+                                            <div class="card-body">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="template_id" id="template_{{ template.id }}" value="{{ template.id }}">
+                                                    <label class="form-check-label w-100" for="template_{{ template.id }}">
+                                                        <strong>{{ template.name }}</strong>
+                                                        <p class="text-muted small mb-0">
+                                                            <span class="badge bg-info">{{ template.icd10_code }}</span>
+                                                            {{ template.icd10_description }}
+                                                        </p>
+                                                        <p class="small mt-1 mb-0">{{ template.clinical_description|truncatewords:15 }}</p>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Пациент -->
+                        <div class="mb-3">
+                            <label for="patient" class="form-label fw-bold">Пациент *</label>
+                            <select class="form-select {% if errors.patient %}is-invalid{% endif %}" id="patient" name="patient" required>
+                                <option value="">-- Выберите пациента --</option>
+                                {% for patient in patients %}
+                                    <option value="{{ patient.id }}" {% if form_data.patient == patient.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ patient.full_name }} ({{ patient.date_of_birth|date:"d.m.Y" }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if errors.patient %}
+                                <div class="invalid-feedback">{{ errors.patient }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Диагноз -->
+                        <div class="mb-3">
+                            <label for="diagnosis" class="form-label fw-bold">Диагноз (МКБ-10) *</label>
+                            <input 
+                                type="text" 
+                                class="form-control {% if errors.diagnosis %}is-invalid{% endif %}" 
+                                id="diagnosis" 
+                                name="diagnosis" 
+                                value="{{ form_data.diagnosis|default:'' }}"
+                                placeholder="Например: I21.9 Острый инфаркт миокарда"
+                                required
+                            >
+                            {% if errors.diagnosis %}
+                                <div class="invalid-feedback">{{ errors.diagnosis }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Описание -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label fw-bold">Описание случая *</label>
+                            <div class="mb-2 d-flex gap-2">
+                                <button type="button" id="emiasBtn" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-cloud-download"></i> Выгрузка из ЕМИАС
+                                </button>
+                            </div>
+                            <textarea 
+                                class="form-control {% if errors.description %}is-invalid{% endif %}" 
+                                id="description" 
+                                name="description" 
+                                rows="5"
+                                placeholder="Опишите клиническую ситуацию, жалобы, анамнез, данные обследования..."
+                                required
+                            >{{ form_data.description|default:'' }}</textarea>
+                            {% if errors.description %}
+                                <div class="invalid-feedback">{{ errors.description }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Дата поступления -->
+                        <div class="mb-3">
+                            <label for="admission_date" class="form-label fw-bold">Дата поступления *</label>
+                            <input 
+                                type="date" 
+                                class="form-control {% if errors.admission_date %}is-invalid{% endif %}" 
+                                id="admission_date" 
+                                name="admission_date" 
+                                value="{{ form_data.admission_date|default:'' }}"
+                                required
+                            >
+                            {% if errors.admission_date %}
+                                <div class="invalid-feedback">{{ errors.admission_date }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Статус -->
+                        <div class="mb-3">
+                            <label for="status" class="form-label fw-bold">Статус</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="urgent" {% if form_data.status == 'urgent' %}selected{% endif %}>Срочно</option>
+                                <option value="monitoring" {% if form_data.status == 'monitoring' or not form_data.status %}selected{% endif %}>Наблюдение</option>
+                                <option value="stable" {% if form_data.status == 'stable' %}selected{% endif %}>Стабильный</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Участники -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Участники консилиума *</label>
+                            {% if errors.doctors %}
+                                <div class="alert alert-danger">{{ errors.doctors }}</div>
+                            {% endif %}
+                            <div class="row g-2">
+                                {% for doctor in all_doctors %}
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input 
+                                                class="form-check-input" 
+                                                type="checkbox" 
+                                                name="doctors" 
+                                                id="doctor_{{ doctor.id }}" 
+                                                value="{{ doctor.id }}"
+                                                data-role="{{ doctor.role|default:'doctor' }}"
+                                                data-specialty="{{ doctor.specialty|default:'' }}"
+                                                {% if doctor.id|stringformat:"s" in form_data.doctors %}checked{% endif %}
+                                            >
+                                            <label class="form-check-label" for="doctor_{{ doctor.id }}">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar-circle-small me-2" style="width: 32px; height: 32px; font-size: 0.75rem;">
+                                                        {{ doctor.get_initials }}
+                                                    </div>
+                                                    <div>
+                                                        <div>{{ doctor.email }}</div>
+                                                        <small class="text-muted">
+                                                            {{ doctor.get_role_display }}
+                                                            {% if doctor.specialty %} • {{ doctor.specialty }}{% endif %}
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% if not all_doctors %}
+                                <p class="text-muted">Нет доступных врачей для добавления</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Создать консилиум
+                            </button>
+                            <a href="{% url 'accounts:cabinet' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Скрытые данные шаблонов для JavaScript -->
+<script id="templates-data" type="application/json">{{ templates|safe }}</script>
+
+<style>
+.template-card {
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.template-card:hover {
+    border-color: #0d6efd;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.template-card input[type="radio"]:checked + label {
+    color: #0d6efd;
+}
+
+.template-card:has(input[type="radio"]:checked) {
+    border-color: #0d6efd;
+    background-color: #f0f7ff;
+}
+
+.avatar-circle-small {
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Установка сегодняшней даты по умолчанию
+    const admissionDateInput = document.getElementById('admission_date');
+    if (admissionDateInput && !admissionDateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        admissionDateInput.value = today;
+    }
+    
+    // Кнопка "Выгрузка из ЕМИАС" — добавляет текст-заглушку в описание
+    const emiasBtn = document.getElementById('emiasBtn');
+    if (emiasBtn) {
+        emiasBtn.addEventListener('click', function() {
+            const textarea = document.getElementById('description');
+            const stub = (textarea.value ? '\\n\\n' : '') + 'БУДЕТ ВЫГРУЖЕНО ИЗ ЕМИАС';
+            textarea.value = textarea.value + stub;
+            textarea.focus();
+        });
+    }
+    
+    // Обработка выбора шаблона
+    const templateCards = document.querySelectorAll('.template-card');
+    templateCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const radio = this.querySelector('input[type="radio"]');
+            if (radio) {
+                radio.checked = true;
+                loadTemplate(radio.value);
+            }
+        });
+    });
+    
+    // Загрузка данных шаблона при выборе
+    const templateRadios = document.querySelectorAll('input[name="template_id"]');
+    templateRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            loadTemplate(this.value);
+        });
+    });
+    
+    // Загружаем выбранный шаблон при загрузке страницы
+    const selectedTemplate = document.querySelector('input[name="template_id"]:checked');
+    if (selectedTemplate && selectedTemplate.value !== '0') {
+        loadTemplate(selectedTemplate.value);
+    }
+});
+
+function loadTemplate(templateId) {
+    if (templateId === '0' || !templateId) {
+        return; // Без шаблона
+    }
+    
+    // Получаем данные шаблона из скрытого JSON
+    const templatesData = document.getElementById('templates-data');
+    if (!templatesData) return;
+    
+    try {
+        const templates = JSON.parse(templatesData.textContent);
+        const template = templates.find(t => t.id == parseInt(templateId));
+        
+        if (template) {
+            // Заполняем поля данными из шаблона
+            document.getElementById('diagnosis').value = template.icd10_code + ' ' + template.icd10_description;
+            
+            let description = 'Клиническое описание: ' + template.clinical_description + '\\n\\n';
+            description += 'Жалобы: ' + template.structured_fields.complaints + '\\n\\n';
+            description += 'Анамнез: ' + template.structured_fields.anamnesis + '\\n\\n';
+            description += 'Данные обследования: ' + template.structured_fields.examination_data + '\\n\\n';
+            description += 'Требуется уточнить: ' + template.structured_fields.needs_clarifying;
+            
+            document.getElementById('description').value = description;
+            
+            // Автовыбор участников по требуемым специальностям, если доступны
+            if (Array.isArray(template.required_specialties)) {
+                autoSelectDoctorsBySpecialties(template.required_specialties);
+            }
+        }
+    } catch (e) {
+        console.error('Error loading template:', e);
+    }
+}
+
+function autoSelectDoctorsBySpecialties(requiredSpecialties) {
+    // Снимаем выделение со всех
+    const checkboxes = Array.from(document.querySelectorAll('input[name="doctors"]'));
+    checkboxes.forEach(cb => cb.checked = false);
+    
+    // Пытаемся матчить по data-specialty (если поле появится в будущем)
+    const lowerReq = requiredSpecialties.map(s => String(s).toLowerCase());
+    const alreadyPicked = new Set();
+    
+    lowerReq.forEach(spec => {
+        // Сначала ищем точное (подстрочное) совпадение в data-specialty
+        let matched = checkboxes.find(cb => {
+            const ds = (cb.dataset.specialty || '').toLowerCase();
+            return !alreadyPicked.has(cb.value) && ds && ds.includes(spec);
+        });
+        if (matched) {
+            matched.checked = true;
+            alreadyPicked.add(matched.value);
+            return;
+        }
+        // Фоллбек: берем первого доступного врача-DOCTOR, который ещё не выбран
+        matched = checkboxes.find(cb => !alreadyPicked.has(cb.value) && (cb.dataset.role || 'doctor') === 'doctor');
+        if (matched) {
+            matched.checked = true;
+            alreadyPicked.add(matched.value);
+        }
+    });
+    
+    // Гарантируем, что хотя бы один врач выбран (если вдруг список пуст)
+    if (!checkboxes.some(cb => cb.checked) && checkboxes.length) {
+        checkboxes[0].checked = true;
+    }
+}
+</script>
+{% endblock %}
+

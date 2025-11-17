@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Мои консилиумы - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Заголовок с настройками -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">
+                <i class="bi bi-chat-dots text-primary"></i> Мои консилиумы
+            </h1>
+            <p class="text-muted mb-0">Всего: {{ total_cases }}</p>
+        </div>
+        <div>
+            <a href="{% url 'accounts:create_case' %}" class="btn btn-primary me-2">
+                <i class="bi bi-plus-circle"></i> Создать консилиум
+            </a>
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-gear"></i> Настройки
+            </button>
+        </div>
+    </div>
+
+    <!-- Фильтры по статусу -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="btn-group" role="group">
+                <a href="{% url 'accounts:cases' %}" 
+                   class="btn {% if not status_filter %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    Все
+                </a>
+                <a href="{% url 'accounts:cases' %}?status=urgent" 
+                   class="btn {% if status_filter == 'urgent' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                    <i class="bi bi-exclamation-triangle"></i> Срочно
+                </a>
+                <a href="{% url 'accounts:cases' %}?status=monitoring" 
+                   class="btn {% if status_filter == 'monitoring' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                    <i class="bi bi-eye"></i> Наблюдение
+                </a>
+                <a href="{% url 'accounts:cases' %}?status=stable" 
+                   class="btn {% if status_filter == 'stable' %}btn-success{% else %}btn-outline-success{% endif %}">
+                    <i class="bi bi-check-circle"></i> Стабильный
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Список консилиумов -->
+    {% if cases %}
+        <div class="row">
+            {% for case_data in cases %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card shadow-sm h-100 case-card">
+                        <div class="card-body">
+                            <!-- Заголовок карточки -->
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="flex-grow-1">
+                                    <h5 class="card-title mb-1">
+                                        <a href="{% url 'accounts:case_detail' case_data.case.id %}" class="text-decoration-none text-dark">
+                                            {{ case_data.case.patient.full_name }}
+                                        </a>
+                                    </h5>
+                                    <p class="text-muted small mb-0">
+                                        <i class="bi bi-calendar3"></i> {{ case_data.case.admission_date|date:"d.m.Y" }}
+                                    </p>
+                                </div>
+                                <div class="text-end">
+                                    {% if case_data.case.status == 'urgent' %}
+                                        <span class="badge bg-danger rounded-pill">
+                                            <i class="bi bi-exclamation-triangle"></i> Срочно
+                                        </span>
+                                    {% elif case_data.case.status == 'monitoring' %}
+                                        <span class="badge bg-warning rounded-pill">
+                                            <i class="bi bi-eye"></i> Наблюдение
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success rounded-pill">
+                                            <i class="bi bi-check-circle"></i> Стабильный
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Диагноз -->
+                            <div class="mb-3">
+                                <p class="mb-1">
+                                    <strong class="text-muted small">Диагноз (МКБ-10):</strong>
+                                </p>
+                                <p class="mb-0">{{ case_data.case.diagnosis }}</p>
+                            </div>
+
+                            <!-- Врачи -->
+                            <div class="mb-3">
+                                <p class="mb-2">
+                                    <strong class="text-muted small">Врачи:</strong>
+                                </p>
+                                <div class="d-flex align-items-center flex-wrap">
+                                    {% for doctor in case_data.doctors %}
+                                        <div class="avatar-circle me-2 mb-2" title="{{ doctor.email }}">
+                                            {{ doctor.get_initials }}
+                                        </div>
+                                    {% endfor %}
+                                    {% if case_data.case.doctors.count > 3 %}
+                                        <span class="text-muted small">+{{ case_data.case.doctors.count|add:"-3" }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Описание -->
+                            {% if case_data.case.description %}
+                                <div class="mb-3">
+                                    <p class="text-muted small mb-1">Описание:</p>
+                                    <p class="small mb-0">{{ case_data.case.description|truncatewords:15 }}</p>
+                                </div>
+                            {% endif %}
+
+                            <!-- Футер карточки -->
+                            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <a href="{% url 'accounts:manage_patient_doctors' case_data.case.patient.id %}" class="btn btn-sm btn-outline-info" title="Управление врачами пациента">
+                                        <i class="bi bi-people"></i>
+                                    </a>
+                                    <small class="text-muted">
+                                        <i class="bi bi-person"></i> Создал: {{ case_data.case.created_by.email|default:"Неизвестно" }}
+                                    </small>
+                                </div>
+                                {% if case_data.unread_count > 0 %}
+                                    <span class="badge bg-danger rounded-pill position-relative">
+                                        <i class="bi bi-envelope"></i> {{ case_data.unread_count }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary rounded-pill">
+                                        <i class="bi bi-check"></i> Прочитано
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
+                <h5 class="text-muted">Нет консилиумов</h5>
+                <p class="text-muted">Создайте новый консилиум</p>
+                <a href="{% url 'accounts:create_case' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Создать консилиум
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.case-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid #e0e0e0;
+}
+
+.case-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+}
+
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.875rem;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}
+

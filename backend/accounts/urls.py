@@ -1,11 +1,56 @@
 from django.urls import path
-from django.contrib.auth.views import LogoutView
-from .views import cabinet_view
+from .views import (
+    cabinet_view,
+    logout_view,
+    register_view,
+    cases_view,
+    case_detail_view,
+    toggle_reaction_view,
+    create_case_view,
+    manage_patient_doctors_view,
+    delete_all_cases_view,
+    delete_my_cases_view,
+    generate_patients_view,
+    clear_my_patients_view,
+    generate_doctors_view,
+    delete_hospital_cases_view,
+    delete_all_patients_view,
+    delete_all_doctors_except_admin_view,
+    my_patients_view,
+    patient_detail_view,
+    patient_detail_anonymous_view,
+    import_emias_patients_view,
+    knowledge_base_view,
+    generate_stable_cases_view,
+    complete_case_view,
+)
 
 app_name = 'accounts'
 
 urlpatterns = [
     path('', cabinet_view, name='cabinet'),
-    path('logout/', LogoutView.as_view(), name='logout'),
+    path('cases/', cases_view, name='cases'),
+    path('cases/create/', create_case_view, name='create_case'),
+    path('cases/<int:case_id>/', case_detail_view, name='case_detail'),
+    path('cases/<int:case_id>/complete/', complete_case_view, name='complete_case'),
+    path('messages/<int:message_id>/reaction/', toggle_reaction_view, name='toggle_reaction'),
+    path('patients/<int:patient_id>/doctors/', manage_patient_doctors_view, name='manage_patient_doctors'),
+    # Tools
+    path('tools/delete_all_cases/', delete_all_cases_view, name='delete_all_cases'),
+    path('tools/delete_my_cases/', delete_my_cases_view, name='delete_my_cases'),
+    path('tools/generate_patients/', generate_patients_view, name='generate_patients'),
+    path('tools/clear_my_patients/', clear_my_patients_view, name='clear_my_patients'),
+    path('tools/generate_doctors/', generate_doctors_view, name='generate_doctors'),
+    path('tools/delete_hospital_cases/', delete_hospital_cases_view, name='delete_hospital_cases'),
+    path('tools/delete_all_patients/', delete_all_patients_view, name='delete_all_patients'),
+    path('tools/delete_all_doctors_except_admin/', delete_all_doctors_except_admin_view, name='delete_all_doctors_except_admin'),
+    path('patients/mine/', my_patients_view, name='my_patients'),
+    path('patients/import-emias/', import_emias_patients_view, name='import_emias_patients'),
+    path('patients/<int:patient_id>/', patient_detail_view, name='patient_detail'),
+    path('cases/<int:case_id>/patient/<int:patient_id>/', patient_detail_anonymous_view, name='patient_detail_anonymous'),
+    path('knowledge/', knowledge_base_view, name='knowledge_base'),
+    path('tools/generate_stable_cases/', generate_stable_cases_view, name='generate_stable_cases'),
+    path('register/', register_view, name='register'),
+    path('logout/', logout_view, name='logout'),
 ]
 

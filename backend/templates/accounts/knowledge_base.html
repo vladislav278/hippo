@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}База знаний - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Заголовок -->
+    <h2 class="h3 mb-4">
+        <i class="bi bi-book text-primary"></i> База знаний
+    </h2>
+    
+    <!-- Поиск -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" action="{% url 'accounts:knowledge_base' %}">
+                <div class="input-group input-group-lg">
+                    <input 
+                        type="text" 
+                        class="form-control" 
+                        name="q" 
+                        value="{{ query|default:'' }}" 
+                        placeholder="Например: инсульт M1"
+                    >
+                    <button class="btn btn-primary" type="submit">
+                        <i class="bi bi-search"></i> Поиск
+                    </button>
+                    {% if query %}
+                        <a href="{% url 'accounts:knowledge_base' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x"></i> Сброс
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Инфобокс "Как это работает?" -->
+    <div class="alert alert-info mb-4">
+        <h6 class="alert-heading">
+            <i class="bi bi-info-circle"></i> Как это работает?
+        </h6>
+        <p class="mb-0">
+            База знаний содержит анонимизированные кейсы из завершенных консилиумов. 
+            Все данные основаны на реальных клинических случаях и могут быть использованы 
+            для обучения и принятия решений в аналогичных ситуациях.
+        </p>
+    </div>
+    
+    <!-- Счетчики -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center">
+                <div class="card-body">
+                    <div class="h2 mb-0 text-primary">{{ total_cases }}</div>
+                    <small class="text-muted">кейсов</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center">
+                <div class="card-body">
+                    <div class="h2 mb-0 text-success">{{ total_doctors }}</div>
+                    <small class="text-muted">врачей</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center">
+                <div class="card-body">
+                    <div class="h2 mb-0 text-info">{{ total_specialties }}</div>
+                    <small class="text-muted">специальностей</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Фильтры по специальностям -->
+    <div class="mb-4">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <span class="text-muted small">Фильтр по специальности:</span>
+            <a href="{% url 'accounts:knowledge_base' %}{% if query %}?q={{ query }}{% endif %}" 
+               class="btn btn-sm {% if not specialty_filter %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                Все
+            </a>
+            {% for spec in specialties %}
+                <a href="{% url 'accounts:knowledge_base' %}?specialty={{ spec }}{% if query %}&q={{ query }}{% endif %}" 
+                   class="btn btn-sm {% if specialty_filter == spec %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    {{ spec }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Результаты поиска -->
+    {% if results %}
+        <div class="row">
+            {% for result in results %}
+                <div class="col-12 mb-3">
+                    <a href="{% url 'accounts:case_detail' result.case.id %}" class="text-decoration-none">
+                        <div class="card shadow-sm knowledge-case-card h-100">
+                            <div class="card-body">
+                                <!-- Верхняя строка с бейджами -->
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <span class="badge bg-secondary">КЕЙС #{{ result.case.id }}</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Диагноз -->
+                                <div class="mb-2">
+                                    <h5 class="mb-1 text-dark">{{ result.case.diagnosis }}</h5>
+                                </div>
+                                
+                                <!-- Анонимная информация о пациенте -->
+                                <div class="mb-3">
+                                    <p class="text-muted small mb-1">
+                                        <i class="bi bi-person"></i> 
+                                        {{ result.case.patient.get_gender_display_short }}, 
+                                        {{ result.case.patient.age }} лет
+                                        {% if result.comorbidities %}
+                                            • Коморбидности: {{ result.comorbidities|join:", " }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                
+                                <!-- Принятое решение -->
+                                <div class="mb-3">
+                                    <h6 class="small text-muted mb-1">Принятое решение:</h6>
+                                    <p class="small text-dark mb-0 clamp-2">{{ result.decision }}</p>
+                                </div>
+                                
+                                <!-- Показатели внизу -->
+                                <div class="d-flex flex-wrap gap-3 text-muted small border-top pt-2">
+                                    <span>
+                                        <i class="bi bi-clock"></i> {{ result.duration_minutes }} мин
+                                    </span>
+                                    <span>
+                                        <i class="bi bi-chat-dots"></i> {{ result.messages_count }} сообщений
+                                    </span>
+                                    <span>
+                                        <i class="bi bi-check-circle text-success"></i> Успешно
+                                    </span>
+                                    <span>
+                                        <i class="bi bi-people"></i> {{ result.doctors_count }} врачей
+                                    </span>
+                                    <span>
+                                        <i class="bi bi-calendar3"></i> {{ result.case.admission_date|date:"d.m.Y" }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    {% elif query %}
+        <!-- Нет результатов при поиске -->
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-search fs-1 text-muted mb-3 d-block"></i>
+                <h5 class="text-muted">Кейсы по запросу «{{ query }}» не найдены</h5>
+                <p class="text-muted mb-3">Попробуйте изменить запрос или посмотрите все кейсы</p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <a href="{% url 'accounts:knowledge_base' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Все кейсы
+                    </a>
+                    <a href="{% url 'accounts:cases' %}" class="btn btn-primary">
+                        <i class="bi bi-list"></i> Мои консилиумы
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- Нет результатов и нет запроса - показываем подсказку -->
+        {% if not query %}
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-search fs-1 text-muted mb-3 d-block"></i>
+                    <h5 class="text-muted">Введите запрос для поиска</h5>
+                    <p class="text-muted mb-0">Используйте поиск выше для поиска по диагнозу, МКБ-коду или ключевым словам</p>
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+
+<style>
+.knowledge-case-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+}
+
+.knowledge-case-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    border-color: #0d6efd;
+}
+
+.clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+{% endblock %}
+

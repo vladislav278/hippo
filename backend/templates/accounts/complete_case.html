@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Завершить консилиум - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Кнопка "Назад" -->
+    <div class="mb-3">
+        <a href="{% url 'accounts:case_detail' case.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Назад к консилиуму
+        </a>
+    </div>
+    
+    <!-- Заголовок -->
+    <h2 class="h3 mb-4">
+        <i class="bi bi-check-circle text-success"></i> Завершить консилиум
+    </h2>
+    
+    <!-- Информация о консилиуме -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Информация о консилиуме</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-2">
+                        <strong>Пациент:</strong> 
+                        {% if case.status == 'stable' %}Анонимный пациент{% else %}{{ case.patient.full_name }}{% endif %}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Диагноз:</strong> {{ case.diagnosis }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Статус:</strong> 
+                        <span class="badge bg-warning">{{ case.get_status_display }}</span>
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-2">
+                        <strong>Дата создания:</strong> {{ case.admission_date|date:"d.m.Y" }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Участников:</strong> {{ case.doctors.count }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Сообщений:</strong> {{ case.messages.count }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Форма завершения -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Подтверждение завершения</h5>
+            <p class="text-muted mb-4">
+                Вы собираетесь завершить этот консилиум. После завершения консилиум будет помечен как завершенный.
+            </p>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="add_to_knowledge_base" id="addToKnowledgeBase" checked>
+                        <label class="form-check-label" for="addToKnowledgeBase">
+                            <strong>Добавить результаты консилиума в базу знаний</strong>
+                        </label>
+                        <small class="form-text text-muted d-block mt-1">
+                            Завершенный консилиум будет доступен в базе знаний для всех врачей. 
+                            Данные пациента и врачей будут анонимизированы.
+                        </small>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Завершить консилиум
+                    </button>
+                    <a href="{% url 'accounts:case_detail' case.id %}" class="btn btn-outline-secondary">
+                        Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
