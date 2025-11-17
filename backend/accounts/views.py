@@ -262,7 +262,23 @@ def case_detail_view(request, case_id):
     # Проверка доступа: завершенные консилиумы доступны всем врачам, активные - только участникам
     if case.status != 'stable':
         # Для активных консилиумов проверяем участие
-        if user not in case.doctors.all():
+        has_access = False
+        
+        if user.role == 'superadmin':
+            has_access = True
+        elif user.role == 'hospital_admin' and user.hospital:
+            # Администратор больницы может видеть консилиумы врачей своей больницы
+            if case.patient and case.patient.hospital == user.hospital:
+                has_access = True
+            elif case.doctors.filter(hospital=user.hospital).exists():
+                has_access = True
+            elif case.created_by and case.created_by.hospital == user.hospital:
+                has_access = True
+        elif user in case.doctors.all() or case.created_by == user:
+            # Участник или создатель
+            has_access = True
+        
+        if not has_access:
             messages.error(request, 'У вас нет доступа к этому консилиуму.')
             return redirect('accounts:cases')
     
@@ -317,12 +333,30 @@ def case_detail_view(request, case_id):
             'user_reactions': user_reactions,
         })
     
+    # Проверяем, может ли пользователь завершить консилиум
+    can_complete = False
+    if case.status != 'stable':
+        if user.role == 'superadmin':
+            can_complete = True
+        elif user.role == 'hospital_admin' and user.hospital:
+            # Администратор больницы может завершить консилиумы врачей своей больницы
+            if case.patient and case.patient.hospital == user.hospital:
+                can_complete = True
+            elif case.doctors.filter(hospital=user.hospital).exists():
+                can_complete = True
+            elif case.created_by and case.created_by.hospital == user.hospital:
+                can_complete = True
+        elif user in case.doctors.all() or case.created_by == user:
+            # Участник или создатель
+            can_complete = True
+    
     context = {
         'user': user,
         'case': case,
         'messages': messages_data,
         'doctors': list(case.doctors.all().order_by('email')),
         'unread_count': case.get_unread_count(user),
+        'can_complete': can_complete,
     }
     
     return render(request, 'accounts/case_detail.html', context)
@@ -846,8 +880,28 @@ def complete_case_view(request, case_id):
         messages.error(request, 'Консилиум не найден.')
         return redirect('accounts:cases')
     
-    # Проверка доступа: только участники консилиума или создатель могут завершить
-    if user not in case.doctors.all() and case.created_by != user:
+    # Проверка доступа:
+    # - Участники консилиума или создатель могут завершить
+    # - Администратор больницы может завершить консилиумы врачей своей больницы
+    # - Суперадмин может завершить любой консилиум
+    has_access = False
+    
+    if user.role == 'superadmin':
+        has_access = True
+    elif user.role == 'hospital_admin' and user.hospital:
+        # Администратор больницы может завершить консилиумы врачей своей больницы
+        if case.patient and case.patient.hospital == user.hospital:
+            has_access = True
+        # Также если хотя бы один врач-участник из его больницы
+        elif case.doctors.filter(hospital=user.hospital).exists():
+            has_access = True
+        elif case.created_by and case.created_by.hospital == user.hospital:
+            has_access = True
+    elif user in case.doctors.all() or case.created_by == user:
+        # Участник или создатель
+        has_access = True
+    
+    if not has_access:
         messages.error(request, 'У вас нет прав для завершения этого консилиума.')
         return redirect('accounts:case_detail', case_id=case_id)
     

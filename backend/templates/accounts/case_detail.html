@@ -245,7 +245,7 @@
                         <a href="{% url 'accounts:cases' %}" class="btn btn-outline-secondary btn-sm flex-fill py-1" title="Назад">
                             <i class="bi bi-arrow-left"></i>
                         </a>
-                        {% if case.status != 'stable' %}
+                        {% if case.status != 'stable' and can_complete %}
                             <a href="{% url 'accounts:complete_case' case.id %}" class="btn btn-outline-success btn-sm flex-fill py-1" title="Завершить консилиум">
                                 <i class="bi bi-check-circle"></i> Завершить
                             </a>
