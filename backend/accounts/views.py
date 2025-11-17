@@ -1262,9 +1262,20 @@ def register_view(request):
         registration_key = request.POST.get('registration_key', '').strip().upper()
         role = request.POST.get('role', 'doctor')
         hospital_id = request.POST.get('hospital')
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        patronymic = request.POST.get('patronymic', '').strip()
+        specialty = request.POST.get('specialty', '').strip()
         
         # Валидация
         errors = {}
+        
+        if not last_name:
+            errors['last_name'] = 'Фамилия обязательна'
+        if not first_name:
+            errors['first_name'] = 'Имя обязательно'
+        if not specialty:
+            errors['specialty'] = 'Специализация обязательна'
         
         # Проверка регистрационного ключа
         if not registration_key:
@@ -1312,7 +1323,11 @@ def register_view(request):
                 username=username,
                 password=password,
                 role=role,
-                hospital=hospital
+                hospital=hospital,
+                first_name=first_name,
+                last_name=last_name,
+                patronymic=patronymic if patronymic else None,
+                specialty=specialty
             )
             
             # Помечаем ключ как использованный

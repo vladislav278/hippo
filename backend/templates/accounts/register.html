@@ -49,6 +49,81 @@
                     {% endif %}
                 </div>
                 
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="last_name">Фамилия *</label>
+                            <input 
+                                type="text" 
+                                id="last_name" 
+                                name="last_name" 
+                                class="form-control {% if errors.last_name %}error{% endif %}"
+                                value="{{ form_data.last_name|default:'' }}"
+                                required
+                            >
+                            {% if errors.last_name %}
+                                <span class="error-message">{{ errors.last_name }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="first_name">Имя *</label>
+                            <input 
+                                type="text" 
+                                id="first_name" 
+                                name="first_name" 
+                                class="form-control {% if errors.first_name %}error{% endif %}"
+                                value="{{ form_data.first_name|default:'' }}"
+                                required
+                            >
+                            {% if errors.first_name %}
+                                <span class="error-message">{{ errors.first_name }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="patronymic">Отчество</label>
+                            <input 
+                                type="text" 
+                                id="patronymic" 
+                                name="patronymic" 
+                                class="form-control {% if errors.patronymic %}error{% endif %}"
+                                value="{{ form_data.patronymic|default:'' }}"
+                            >
+                            {% if errors.patronymic %}
+                                <span class="error-message">{{ errors.patronymic }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="specialty">Специализация *</label>
+                    <select 
+                        id="specialty" 
+                        name="specialty" 
+                        class="form-control {% if errors.specialty %}error{% endif %}"
+                        required
+                    >
+                        <option value="">-- Выберите специализацию --</option>
+                        <option value="Кардиолог" {% if form_data.specialty == 'Кардиолог' %}selected{% endif %}>Кардиолог</option>
+                        <option value="Невролог" {% if form_data.specialty == 'Невролог' %}selected{% endif %}>Невролог</option>
+                        <option value="Пульмонолог" {% if form_data.specialty == 'Пульмонолог' %}selected{% endif %}>Пульмонолог</option>
+                        <option value="Анестезиолог-реаниматолог" {% if form_data.specialty == 'Анестезиолог-реаниматолог' %}selected{% endif %}>Анестезиолог-реаниматолог</option>
+                        <option value="Рентгенолог" {% if form_data.specialty == 'Рентгенолог' %}selected{% endif %}>Рентгенолог</option>
+                        <option value="Гастроэнтеролог" {% if form_data.specialty == 'Гастроэнтеролог' %}selected{% endif %}>Гастроэнтеролог</option>
+                        <option value="Хирург" {% if form_data.specialty == 'Хирург' %}selected{% endif %}>Хирург</option>
+                        <option value="Нефролог" {% if form_data.specialty == 'Нефролог' %}selected{% endif %}>Нефролог</option>
+                        <option value="Уролог" {% if form_data.specialty == 'Уролог' %}selected{% endif %}>Уролог</option>
+                        <option value="ЛОР" {% if form_data.specialty == 'ЛОР' %}selected{% endif %}>ЛОР</option>
+                    </select>
+                    {% if errors.specialty %}
+                        <span class="error-message">{{ errors.specialty }}</span>
+                    {% endif %}
+                </div>
+                
                 <div class="form-group">
                     <label for="password">Пароль *</label>
                     <input 

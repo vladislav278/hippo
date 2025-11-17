@@ -48,6 +48,12 @@ class User(AbstractUser):
         blank=True,
         verbose_name="Специализация"
     )
+    patronymic = models.CharField(
+        max_length=150,
+        null=True,
+        blank=True,
+        verbose_name="Отчество"
+    )
     last_activity = models.DateTimeField(null=True, blank=True, verbose_name="Последняя активность")
 
     def get_presence_status(self):
@@ -87,7 +93,9 @@ class User(AbstractUser):
             parts.append(self.last_name)
         if self.first_name:
             parts.append(self.first_name)
-        if self.last_name or self.first_name:
+        if self.patronymic:
+            parts.append(self.patronymic)
+        if parts:
             return ' '.join(parts)
         # Если нет ФИО, возвращаем email
         return self.email or 'Пользователь'
