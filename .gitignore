@@ -28,7 +28,8 @@ wheels/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-/backend/db.sqlite3
+/staticfiles/
+/media/
 
 # IDE
 .vscode/
@@ -43,5 +44,4 @@ Thumbs.db
 
 # Environment
 .env
-.venv
-
+.env.local
