@@ -25,8 +25,8 @@ WORKDIR /app/backend
 # Создаем директорию для статических файлов
 RUN mkdir -p /app/backend/staticfiles
 
-# Собираем статические файлы
-RUN python manage.py collectstatic --noinput || true
+# Собираем статические файлы (пропускаем ошибки, так как база данных еще не настроена)
+# RUN python manage.py collectstatic --noinput || true
 
 # Открываем порт
 EXPOSE 8000
