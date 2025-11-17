@@ -107,12 +107,13 @@
 ### Зависимости:
 
 Все зависимости указаны в `requirements.txt`:
-- Django>=5.0,<6.0
-- djangorestframework>=3.14.0
-- gunicorn>=21.2.0
-- whitenoise>=6.6.0
-- psycopg2-binary>=2.9.9
-- dj-database-url>=2.1.0
+- Django==4.2.18
+- djangorestframework==3.14.0
+- djangorestframework-simplejwt==5.3.1
+- gunicorn==21.2.0
+- whitenoise==6.6.0
+- psycopg2-binary==2.9.9
+- dj-database-url==2.1.0
 
 ---
 
